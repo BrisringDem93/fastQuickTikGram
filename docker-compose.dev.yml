@@ -1,0 +1,99 @@
+# docker-compose.dev.yml
+# Development overrides – extend the base compose file for local work:
+#   docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+#
+# Additions:
+#   • MinIO  – S3-compatible local object storage (replaces real S3/AWS)
+#   • MailHog – catches outbound SMTP so you can inspect emails in a browser
+#   • Hot-reload volume mounts for backend (uvicorn --reload) and frontend
+
+version: '3.9'
+
+volumes:
+  minio_data:
+
+services:
+
+  # ── MinIO (local S3-compatible storage) ─────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # MinIO web console → http://localhost:9001
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ── MailHog (SMTP catcher) ───────────────────────────────────────────────
+  mailhog:
+    image: mailhog/mailhog:latest
+    restart: unless-stopped
+    ports:
+      - "1025:1025"   # SMTP server  → set SMTP_HOST=mailhog, SMTP_PORT=1025
+      - "8025:8025"   # Web UI       → http://localhost:8025
+
+  # ── Backend: enable hot-reload and mount source ─────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: builder          # stop at the builder stage to keep dev deps
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./backend:/app         # live source mount for hot-reload
+      - uploads_tmp:/app/tmp
+    environment:
+      S3_ENDPOINT_URL: http://minio:9000
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin
+    depends_on:
+      minio:
+        condition: service_healthy
+
+  # ── Worker: mount source so code changes are picked up on restart ────────
+  worker:
+    volumes:
+      - ./backend:/app
+      - uploads_tmp:/app/tmp
+    environment:
+      S3_ENDPOINT_URL: http://minio:9000
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin
+    depends_on:
+      minio:
+        condition: service_healthy
+
+  # ── Beat: same live-mount ────────────────────────────────────────────────
+  beat:
+    volumes:
+      - ./backend:/app
+    environment:
+      S3_ENDPOINT_URL: http://minio:9000
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin
+
+  # ── Frontend: mount source for Next.js dev server with HMR ──────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: deps              # stop at the deps stage for dev
+    command: npm run dev
+    volumes:
+      - ./frontend:/app         # live source mount
+      - /app/node_modules       # keep container node_modules separate
+      - /app/.next              # keep .next build cache inside container
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      BACKEND_URL: http://backend:8000
