@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-inter: "Inter", system-ui, sans-serif;
+  }
+
+  * {
+    @apply border-gray-200;
+  }
+
+  body {
+    @apply font-sans;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+}
+
+@layer components {
+  .page-container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .card {
+    @apply bg-white rounded-xl border border-gray-200 shadow-sm;
+  }
+
+  .input-base {
+    @apply w-full rounded-lg border-gray-300 shadow-sm text-sm
+           focus:border-brand-500 focus:ring-brand-500
+           placeholder:text-gray-400 transition-colors;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2
+           rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white
+           hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500
+           focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed
+           transition-colors;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2
+           rounded-lg bg-gray-100 px-4 py-2.5 text-sm font-medium text-gray-700
+           hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-400
+           focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed
+           transition-colors;
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2
+           rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium
+           text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2
+           focus:ring-brand-500 focus:ring-offset-2
+           disabled:opacity-50 disabled:cursor-not-allowed transition-colors;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
