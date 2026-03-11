@@ -17,6 +17,14 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
+# Build-time variables: declare as ARG so they can be passed via --build-arg,
+# then promote to ENV so Next.js can embed NEXT_PUBLIC_* at compile time and
+# next.config.mjs can read BACKEND_URL for server-side rewrites.
+ARG NEXT_PUBLIC_API_URL
+ARG BACKEND_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV BACKEND_URL=$BACKEND_URL
+
 RUN npm run build
 
 # ─── Stage 3: Runner ──────────────────────────────────────────────────────────
