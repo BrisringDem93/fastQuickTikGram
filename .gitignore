@@ -17,7 +17,6 @@ ENV/
 frontend/node_modules/
 frontend/.next/
 frontend/out/
-frontend/package-lock.json
 .env.local
 .env.development.local
 .env.test.local
