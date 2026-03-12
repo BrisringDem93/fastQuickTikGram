@@ -44,41 +44,27 @@ FastQuickTikGram is a multi-tenant SaaS platform that automates short-form video
 ## Architecture
 
 ```
-                         ┌─────────────────────────────────────────────────────┐
-                         │                    Docker Compose                    │
-                         │                                                       │
-  Browser ──HTTP:80───► │  ┌──────────┐    ┌──────────────┐                   │
-                         │  │  Nginx   │───►│   Frontend   │  (Next.js :3000)  │
-                         │  │ :80      │    │              │                   │
-                         │  │          │    └──────────────┘                   │
-                         │  │  /api/   │         │ BACKEND_URL (internal)      │
-                         │  │   ──────►│    ┌────▼─────────┐                   │
-                         │  └──────────┘    │   Backend    │  (FastAPI :8000)  │
-                         │                  │              │                   │
-                         │                  └──┬──────┬────┘                   │
-                         │                     │      │                        │
-                         │           ┌─────────▼─┐  ┌─▼──────────┐           │
-                         │           │ PostgreSQL │  │   Redis    │           │
-                         │           │  :5432     │  │  :6379     │           │
-                         │           └───────────┘  └─────┬──────┘           │
-                         │                                 │ broker            │
-                         │                    ┌────────────▼──────────────┐   │
-                         │                    │     Celery Workers         │   │
-                         │                    │  worker  │  beat           │   │
-                         │                    │ (tasks)  │ (scheduler)     │   │
-                         │                    └──────────┴─────────────────┘   │
-                         │                                                       │
-                         │           ┌───────────────────────────────────┐     │
-                         │           │   S3 / MinIO (object storage)     │     │
-                         │           │   video originals, edited clips   │     │
-                         │           └───────────────────────────────────┘     │
+                          ┌─────────────────────────────────────────────────────┐
+                          │                    Docker Compose                    │
+                          │                                                       │
+ Browser ──HTTP/HTTPS──► │    Frontend (Next.js :3000, internal only)         │
+ via Coolify/Traefik     │             │                                        │
+ (external reverse proxy)│             │ /api/* rewrite                          │
+                         │             ▼                                        │
+                         │      Backend (FastAPI :8000, internal only)         │
+                         │             │                     │                   │
+                         │        PostgreSQL :5432       Redis :6379            │
+                         │                                  │ broker             │
+                         │                    ┌─────────────▼─────────────┐     │
+                         │                    │      Celery worker/beat    │     │
+                         │                    └────────────────────────────┘     │
                          └─────────────────────────────────────────────────────┘
 ```
 
 **Request flow:**
-1. Browser → Nginx (`:80`)
-2. `/api/*` → FastAPI backend (`:8000`) directly via Nginx upstream
-3. `/*` → Next.js frontend (`:3000`) via Nginx upstream
+1. Browser → external reverse proxy (Coolify/Traefik)
+2. Reverse proxy routes traffic to the Next.js frontend service (`:3000`) on the Docker network
+3. Frontend `/api/*` requests are rewritten to FastAPI backend (`http://backend:8000`)
 4. Next.js server-side calls backend via internal Docker DNS (`http://backend:8000`)
 5. Long-running tasks (video processing, publishing) dispatched to Celery via Redis
 
@@ -197,7 +183,7 @@ Every piece of content is tracked as a `ContentJob` with 16 states:
 | **Video processing** | FFmpeg (via subprocess) |
 | **Auth** | JWT (python-jose), bcrypt (passlib) |
 | **Frontend** | Next.js 14 (App Router), TypeScript, Tailwind CSS |
-| **Reverse proxy** | Nginx (Alpine) |
+| **Reverse proxy** | Coolify / Traefik (external to this compose stack) |
 | **Containerisation** | Docker, Docker Compose |
 | **Local email** | MailHog (dev only) |
 | **Local storage** | MinIO (dev only) |
@@ -247,7 +233,7 @@ Open `.env` and fill in the required values:
 ### 3. Build and start services
 
 ```bash
-# Production-like stack
+# Production stack (for Coolify/Traefik deployment; no host ports published)
 docker compose up --build -d
 
 # Check everything is healthy
@@ -261,14 +247,19 @@ docker compose logs -f backend
 docker compose exec backend alembic upgrade head
 ```
 
-### 5. Verify the stack
+### 5. Verify locally (development override)
+
+Start with the development override when you need localhost access:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build -d
+```
 
 | Service | URL |
 |---|---|
 | API docs (Swagger) | http://localhost:8000/docs |
 | API docs (ReDoc) | http://localhost:8000/redoc |
 | Frontend | http://localhost:3000 |
-| Via Nginx | http://localhost |
 | Health check | http://localhost:8000/health |
 
 ### 6. Create your first user
