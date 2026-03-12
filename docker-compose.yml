@@ -47,8 +47,8 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     env_file: .env
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     volumes:
       - uploads_tmp:/app/tmp
     depends_on:
@@ -93,22 +93,10 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     restart: unless-stopped
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXT_PUBLIC_API_URL: /api
       BACKEND_URL: http://backend:8000
     depends_on:
-      - backend
-
-  # ── Nginx reverse proxy ──────────────────────────────────────────────────
-  nginx:
-    image: nginx:alpine
-    restart: unless-stopped
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
-    depends_on:
-      - frontend
       - backend
