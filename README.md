@@ -330,44 +330,47 @@ docker compose exec backend alembic downgrade -1
 
 ## Environment Variables
 
+Copy `.env.example` to `.env` and fill in the values before starting the stack.
+
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `SECRET_KEY` | ✅ | — | Flask/FastAPI signing secret. Generate with `secrets.token_hex(32)` |
-| `ENCRYPTION_KEY` | ✅ | — | Fernet key for encrypting OAuth tokens at rest |
-| `DATABASE_URL` | ✅ | — | asyncpg connection string e.g. `postgresql+asyncpg://user:pass@host/db` |
-| `POSTGRES_USER` | ✅ | `postgres` | Used by the postgres Docker service |
-| `POSTGRES_PASSWORD` | ✅ | `postgres` | Used by the postgres Docker service |
-| `POSTGRES_DB` | ✅ | `fastquicktikgram` | Database name |
-| `REDIS_URL` | ✅ | — | Redis connection string |
-| `CELERY_BROKER_URL` | ✅ | — | Redis URL for Celery task messages |
-| `CELERY_RESULT_BACKEND` | ✅ | — | Redis URL for Celery task results |
-| `JWT_ALGORITHM` | ✅ | `HS256` | JWT signing algorithm |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | ✅ | `30` | Access token lifetime in minutes |
-| `REFRESH_TOKEN_EXPIRE_DAYS` | ✅ | `30` | Refresh token lifetime in days |
+| `SECRET_KEY` | ✅ | — | FastAPI JWT signing secret. Generate with `python -c "import secrets; print(secrets.token_hex(32))"` |
+| `ENCRYPTION_KEY` | ✅ | — | Fernet key for encrypting OAuth tokens at rest. Generate with `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"` |
+| `DATABASE_URL` | ✅ | — | asyncpg connection string, e.g. `postgresql+asyncpg://user:pass@host/db` |
 | `S3_BUCKET` | ✅ | — | S3/MinIO bucket name |
-| `S3_ENDPOINT_URL` | ✅ | — | Override endpoint for MinIO (`http://minio:9000`) or leave blank for AWS |
-| `S3_ACCESS_KEY` | ✅ | — | S3 / MinIO access key |
-| `S3_SECRET_KEY` | ✅ | — | S3 / MinIO secret key |
-| `S3_REGION` | ✅ | `us-east-1` | AWS region (or any value for MinIO) |
-| `OPENAI_API_KEY` | ✅ | — | OpenAI API key for hook generation |
+| `S3_ACCESS_KEY` | ✅ | — | S3 / MinIO access key ID |
+| `S3_SECRET_KEY` | ✅ | — | S3 / MinIO secret access key |
+| `OPENAI_API_KEY` | ✅ | — | OpenAI API key for AI hook generation |
+| `NEXT_PUBLIC_API_URL` | ✅ | `http://localhost:8000` | Public API base URL accessible from the browser |
+| `POSTGRES_USER` | — | `postgres` | PostgreSQL username (used by the postgres Docker service) |
+| `POSTGRES_PASSWORD` | — | `postgres` | PostgreSQL password (used by the postgres Docker service) |
+| `POSTGRES_DB` | — | `fastquicktikgram` | PostgreSQL database name (used by the postgres Docker service) |
+| `REDIS_URL` | — | `redis://localhost:6379/0` | Redis connection string |
+| `CELERY_BROKER_URL` | — | `redis://localhost:6379/0` | Redis URL for Celery task messages |
+| `CELERY_RESULT_BACKEND` | — | `redis://localhost:6379/1` | Redis URL for Celery task results |
+| `JWT_ALGORITHM` | — | `HS256` | JWT signing algorithm |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | — | `30` | Access token lifetime in minutes |
+| `REFRESH_TOKEN_EXPIRE_DAYS` | — | `30` | Refresh token lifetime in days |
+| `S3_ENDPOINT_URL` | — | _(AWS default)_ | Override S3 endpoint for MinIO in dev (`http://minio:9000`); omit for AWS |
+| `S3_REGION` | — | `us-east-1` | AWS region (or any value when using MinIO) |
+| `MAX_VIDEO_SIZE_MB` | — | `500` | Maximum video upload size in megabytes |
+| `BACKEND_URL` | — | `http://backend:8000` | Internal Docker URL used by Next.js server-side rendering to reach the backend |
 | `YOUTUBE_CLIENT_ID` | ⚠️ | — | Google OAuth client ID |
 | `YOUTUBE_CLIENT_SECRET` | ⚠️ | — | Google OAuth client secret |
-| `YOUTUBE_REDIRECT_URI` | ⚠️ | — | Must match Google Console configuration |
+| `YOUTUBE_REDIRECT_URI` | ⚠️ | — | Must match the redirect URI configured in Google Cloud Console |
 | `TIKTOK_CLIENT_KEY` | ⚠️ | — | TikTok developer app client key |
 | `TIKTOK_CLIENT_SECRET` | ⚠️ | — | TikTok developer app client secret |
-| `TIKTOK_REDIRECT_URI` | ⚠️ | — | Must match TikTok app configuration |
+| `TIKTOK_REDIRECT_URI` | ⚠️ | — | Must match the redirect URI configured in TikTok for Developers |
 | `INSTAGRAM_CLIENT_ID` | ⚠️ | — | Facebook/Instagram app client ID |
 | `INSTAGRAM_CLIENT_SECRET` | ⚠️ | — | Facebook/Instagram app client secret |
-| `INSTAGRAM_REDIRECT_URI` | ⚠️ | — | Must match Meta app configuration |
+| `INSTAGRAM_REDIRECT_URI` | ⚠️ | — | Must match the redirect URI configured in Meta for Developers |
 | `FACEBOOK_APP_ID` | ⚠️ | — | Facebook app ID |
 | `FACEBOOK_APP_SECRET` | ⚠️ | — | Facebook app secret |
-| `FACEBOOK_REDIRECT_URI` | ⚠️ | — | Must match Meta app configuration |
-| `MAX_VIDEO_SIZE_MB` | — | `500` | Maximum video upload size in megabytes |
-| `NEXT_PUBLIC_API_URL` | ✅ | `http://localhost:8000` | Public API base URL used by browser |
-| `BACKEND_URL` | ✅ | `http://backend:8000` | Internal container URL for Next.js SSR |
+| `FACEBOOK_REDIRECT_URI` | ⚠️ | — | Must match the redirect URI configured in Meta for Developers |
 
-✅ = required for any environment  
-⚠️ = required only when you want to test that specific social platform
+✅ = required — the app will not start without this value  
+⚠️ = required only when you want to use that specific social platform  
+— = optional, falls back to the default shown
 
 ---
 
