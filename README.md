@@ -336,10 +336,10 @@ Copy `.env.example` to `.env` and fill in the values before starting the stack.
 |---|---|---|---|
 | `SECRET_KEY` | ✅ | — | FastAPI JWT signing secret. Generate with `python -c "import secrets; print(secrets.token_hex(32))"` |
 | `ENCRYPTION_KEY` | ✅ | — | Fernet key for encrypting OAuth tokens at rest. Generate with `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"` |
-| `DATABASE_URL` | ✅ | — | asyncpg connection string, e.g. `postgresql+asyncpg://user:pass@host/db` |
-| `S3_BUCKET` | ✅ | — | S3/MinIO bucket name |
-| `S3_ACCESS_KEY` | ✅ | — | S3 / MinIO access key ID |
-| `S3_SECRET_KEY` | ✅ | — | S3 / MinIO secret access key |
+| `DATABASE_URL` | — | `postgresql+asyncpg://postgres:postgres@postgres:5432/fastquicktikgram` | asyncpg connection string, e.g. `postgresql+asyncpg://user:pass@host/db` |
+| `S3_BUCKET` | — | `fastquicktikgram` | S3/MinIO bucket name |
+| `S3_ACCESS_KEY` | — | `minioadmin` | S3 / MinIO access key ID |
+| `S3_SECRET_KEY` | — | `minioadmin` | S3 / MinIO secret access key |
 | `OPENAI_API_KEY` | ✅ | — | OpenAI API key for AI hook generation |
 | `NEXT_PUBLIC_API_URL` | ✅ | `http://localhost:8000` | Public API base URL accessible from the browser |
 | `POSTGRES_USER` | — | `postgres` | PostgreSQL username (used by the postgres Docker service) |
