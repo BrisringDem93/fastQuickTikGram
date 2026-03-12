@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 class CeleryConfigImportTests(unittest.TestCase):
-    def test_celery_import_works_without_database_and_s3_env_vars(self) -> None:
+    def test_celery_import_without_db_s3_env_vars(self) -> None:
         backend_dir = Path(__file__).resolve().parents[1]
         env = os.environ.copy()
         env.update(

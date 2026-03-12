@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     # ------------------------------------------------------------------
     # Database & cache
     # ------------------------------------------------------------------
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@postgres:5432/fastquicktikgram"
+    DATABASE_URL: str = "postgresql+asyncpg://user:password@localhost/fastquicktikgram"
     REDIS_URL: str = "redis://localhost:6379/0"
 
     # ------------------------------------------------------------------
@@ -37,8 +37,8 @@ class Settings(BaseSettings):
     # ------------------------------------------------------------------
     S3_BUCKET: str = "fastquicktikgram"
     S3_ENDPOINT_URL: Optional[str] = None   # None → use AWS default
-    S3_ACCESS_KEY: str = "minioadmin"
-    S3_SECRET_KEY: str = "minioadmin"
+    S3_ACCESS_KEY: str = "s3-access-key"
+    S3_SECRET_KEY: str = "s3-secret-key"
     S3_REGION: str = "us-east-1"
 
     # ------------------------------------------------------------------
