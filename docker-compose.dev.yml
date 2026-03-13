@@ -47,7 +47,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-      target: runtime          # keep runtime PATH and installed entrypoints available
+      target: api-runtime      # keep the API container lean during local reload
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     ports:
       - "8000:8000"
@@ -64,6 +64,10 @@ services:
 
   # ── Worker: mount source so code changes are picked up on restart ────────
   worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: worker-runtime
     volumes:
       - ./backend:/app
       - uploads_tmp:/app/tmp

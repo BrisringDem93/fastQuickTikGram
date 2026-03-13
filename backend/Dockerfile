@@ -20,8 +20,8 @@ COPY requirements.txt .
 RUN pip install --prefix=/install -r requirements.txt
 
 
-# ── Stage 2: runtime image ────────────────────────────────────────────────────
-FROM python:3.12-slim AS runtime
+# ── Stage 2: shared runtime base ──────────────────────────────────────────────
+FROM python:3.12-slim AS runtime-base
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -30,15 +30,17 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Runtime system deps (no build tools)
+# Runtime system deps shared by API + workers
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libpq5 \
-        ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 # Non-root user for security
 RUN groupadd --gid 1001 appgroup \
     && useradd --uid 1001 --gid appgroup --no-create-home appuser
+
+# ── Stage 3: app filesystem shared by API + workers ─────────────────────────
+FROM runtime-base AS app-base
 
 # Copy installed Python packages from builder
 COPY --from=builder /install /usr/local
@@ -49,6 +51,9 @@ COPY . .
 # Set ownership
 RUN chown -R appuser:appgroup /app
 
+# ── Stage 4: API / beat runtime (lean, no ffmpeg) ───────────────────────────
+FROM app-base AS api-runtime
+
 USER appuser
 
 EXPOSE 8000
@@ -56,3 +61,15 @@ EXPOSE 8000
 # Default: run the FastAPI application with Uvicorn
 # Override CMD to run Celery workers or beat scheduler.
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+
+
+# ── Stage 5: worker runtime (includes ffmpeg) ───────────────────────────────
+FROM app-base AS worker-runtime
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+USER appuser
+
+CMD ["celery", "-A", "app.workers.celery_app", "worker", "--loglevel=info", "--concurrency=4"]

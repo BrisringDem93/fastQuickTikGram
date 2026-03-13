@@ -42,9 +42,11 @@ services:
 
   # ── FastAPI backend ──────────────────────────────────────────────────────
   backend:
+    image: fastquicktikgram-backend:latest
     build:
       context: ./backend
       dockerfile: Dockerfile
+      target: api-runtime
     restart: unless-stopped
     env_file: .env
     expose:
@@ -59,9 +61,11 @@ services:
 
   # ── Celery worker ────────────────────────────────────────────────────────
   worker:
+    image: fastquicktikgram-worker:latest
     build:
       context: ./backend
       dockerfile: Dockerfile
+      target: worker-runtime
     restart: unless-stopped
     command: celery -A app.workers.celery_app worker --loglevel=info --concurrency=4
     env_file: .env
@@ -75,9 +79,7 @@ services:
 
   # ── Celery beat scheduler ────────────────────────────────────────────────
   beat:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: fastquicktikgram-backend:latest
     restart: unless-stopped
     command: celery -A app.workers.celery_app beat --loglevel=info
     env_file: .env

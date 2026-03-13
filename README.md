@@ -234,6 +234,7 @@ Open `.env` and fill in the required values:
 
 ```bash
 # Production stack (for Coolify/Traefik deployment; no host ports published)
+# API and beat now reuse the same lean backend image; only the worker image includes FFmpeg.
 docker compose up --build -d
 
 # Check everything is healthy
@@ -259,7 +260,7 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build -d
 |---|---|
 | API docs (Swagger) | http://localhost:8000/docs |
 | API docs (ReDoc) | http://localhost:8000/redoc |
-| Frontend | http://localhost:3000 |
+| Frontend | http://localhost:3550 |
 | Health check | http://localhost:8000/health |
 
 ### 6. Create your first user
