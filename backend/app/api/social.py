@@ -84,7 +84,7 @@ async def delete_account(
     account_id: uuid.UUID,
     db: DBDep,
     current_user: CurrentUser,
-) -> None:
+) -> Response:
     """Disconnect and remove a social account."""
     service = SocialService(db)
     try:
