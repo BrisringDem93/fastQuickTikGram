@@ -72,7 +72,9 @@ class ContentJob(Base):
     user_timezone: Mapped[str | None] = mapped_column(String(100), nullable=True)
 
     # Arbitrary extra metadata (e.g. caption, tags, hashtags)
-    metadata: Mapped[dict | None] = mapped_column(JSONB, nullable=True, default=dict)
+    job_metadata: Mapped[dict | None] = mapped_column(
+        "metadata", JSONB, nullable=True, default=dict
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow, server_default=func.now(), nullable=False

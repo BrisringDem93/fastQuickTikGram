@@ -196,12 +196,12 @@ class JobService:
     ) -> ContentJob:
         """Transition to PUBLISHING and store caption metadata."""
         job = await self.get_job(job_id=job_id, user_id=user_id)
-        meta: dict[str, Any] = dict(job.metadata or {})
+        meta: dict[str, Any] = dict(job.job_metadata or {})
         if caption:
             meta["caption"] = caption
         if hashtags:
             meta["hashtags"] = hashtags
-        job.metadata = meta
+        job.job_metadata = meta
         return await self._transition(job, JobState.PUBLISHING)
 
     async def schedule_job(
@@ -219,12 +219,12 @@ class JobService:
         if scheduled_at <= datetime.now(tz=timezone.utc):
             raise AppException("Scheduled time must be in the future")
 
-        meta: dict[str, Any] = dict(job.metadata or {})
+        meta: dict[str, Any] = dict(job.job_metadata or {})
         if caption:
             meta["caption"] = caption
         if hashtags:
             meta["hashtags"] = hashtags
-        job.metadata = meta
+        job.job_metadata = meta
         job.scheduled_at_utc = scheduled_at
         job.user_timezone = user_timezone
 

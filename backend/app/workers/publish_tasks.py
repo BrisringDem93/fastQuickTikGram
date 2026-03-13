@@ -39,8 +39,8 @@ async def _publish_job_async(job_id: str) -> None:
             logger.error("Job %s has no edited video key", job_id)
             return
 
-        caption: str = (job.metadata or {}).get("caption", job.title)
-        hashtags: list[str] = (job.metadata or {}).get("hashtags", [])
+        caption: str = (job.job_metadata or {}).get("caption", job.title)
+        hashtags: list[str] = (job.job_metadata or {}).get("hashtags", [])
 
         success_count = 0
         fail_count = 0
