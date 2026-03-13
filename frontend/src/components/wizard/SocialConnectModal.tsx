@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { PlatformIcon } from "@/components/ui/PlatformIcon";
 import { Platform } from "@/types";
+import { API_BASE } from "@/lib/api";
 import { getPlatformLabel } from "@/lib/utils";
 
 interface Props {
@@ -23,10 +24,10 @@ const PLATFORMS = [
 ];
 
 const PLATFORM_OAUTH_URLS: Record<Platform, string> = {
-  [Platform.youtube]: "/api/social-accounts/oauth/youtube",
-  [Platform.tiktok]: "/api/social-accounts/oauth/tiktok",
-  [Platform.instagram]: "/api/social-accounts/oauth/instagram",
-  [Platform.facebook]: "/api/social-accounts/oauth/facebook",
+  [Platform.youtube]: `${API_BASE}/social/connect/youtube`,
+  [Platform.tiktok]: `${API_BASE}/social/connect/tiktok`,
+  [Platform.instagram]: `${API_BASE}/social/connect/instagram`,
+  [Platform.facebook]: `${API_BASE}/social/connect/facebook`,
 };
 
 export function SocialConnectModal({ onClose, jobId }: Props) {

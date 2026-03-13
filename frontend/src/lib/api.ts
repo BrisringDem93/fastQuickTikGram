@@ -9,6 +9,7 @@ import Cookies from "js-cookie";
 
 const ACCESS_TOKEN_KEY = "fqtg_access_token";
 const REFRESH_TOKEN_KEY = "fqtg_refresh_token";
+export const API_BASE = "/api/v1";
 
 export function getAuthToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -51,7 +52,7 @@ export function clearRefreshToken(): void {
 // ─── Axios instance ───────────────────────────────────────────────────────────
 
 const api: AxiosInstance = axios.create({
-  baseURL: "/api",
+  baseURL: API_BASE,
   headers: { "Content-Type": "application/json" },
   timeout: 30_000,
 });
@@ -95,7 +96,7 @@ api.interceptors.response.use(
       try {
         if (!refreshPromise) {
           refreshPromise = axios
-            .post<{ access_token: string }>("/api/auth/refresh", {
+            .post<{ access_token: string }>(`${API_BASE}/auth/refresh`, {
               refresh_token: refreshToken,
             })
             .then((res) => {

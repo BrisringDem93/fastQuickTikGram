@@ -378,6 +378,23 @@ Copy `.env.example` to `.env` and fill in the values before starting the stack.
 
 All backend routes are mounted under `/api/v1`. The full interactive docs are available at [http://localhost:8000/docs](http://localhost:8000/docs).
 
+### API Routing Convention
+
+- **Canonical API prefix:** `/api/v1`
+- **Backend router structure:** each domain router defines its own resource prefix (for example, `APIRouter(prefix="/auth")`) and is mounted in `backend/app/main.py` with `prefix="/api/v1"`.
+- **Final endpoint example:** `POST /api/v1/auth/register`
+- **Frontend call example:** `fetch("/api/v1/auth/register", { method: "POST", ... })`
+- **Next.js rewrite convention:** `/api/*` on the frontend proxies to backend `/api/*`, so `/api/v1/*` remains unchanged end-to-end.
+- **Warning:** if frontend and backend prefixes do not match (for example `/api/auth/*` vs `/api/v1/auth/*`), requests will return `404 Not Found`.
+
+### Troubleshooting 404 Errors
+
+Common causes:
+
+- Frontend calling `/api/auth/*` instead of `/api/v1/auth/*`.
+- Next.js rewrite missing the `/api` segment in the destination path.
+- Routers mounted under a different prefix in `backend/app/main.py`.
+
 ### Authentication (`/api/v1/auth`)
 
 | Method | Path | Auth | Description |
