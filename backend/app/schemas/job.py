@@ -23,7 +23,7 @@ class JobResponse(BaseModel):
     approved_hook_id: uuid.UUID | None
     scheduled_at_utc: datetime | None
     user_timezone: str | None
-    metadata: dict[str, Any] | None
+    metadata: dict[str, Any] | None = Field(validation_alias="job_metadata")
     created_at: datetime
     updated_at: datetime
     completed_at: datetime | None
