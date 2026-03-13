@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, HTTPException, Query, Request, status
+from fastapi import APIRouter, HTTPException, Query, Request, Response, status
 
 from app.api.deps import CurrentUser, DBDep
 from app.core.exceptions import AppException, NotFoundError, PermissionError
@@ -75,7 +75,11 @@ async def oauth_callback(
     return SocialAccountResponse.model_validate(account)
 
 
-@router.delete("/accounts/{account_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/accounts/{account_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+)
 async def delete_account(
     account_id: uuid.UUID,
     db: DBDep,
@@ -87,3 +91,4 @@ async def delete_account(
         await service.delete_account(account_id=account_id, user_id=current_user.id)
     except AppException as exc:
         _raise_for_app_exception(exc)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
