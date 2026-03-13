@@ -341,7 +341,8 @@ Copy `.env.example` to `.env` and fill in the values before starting the stack.
 | `S3_ACCESS_KEY` | — | `s3-access-key` | S3 / MinIO access key ID |
 | `S3_SECRET_KEY` | — | `s3-secret-key` | S3 / MinIO secret access key |
 | `OPENAI_API_KEY` | ✅ | — | OpenAI API key for AI hook generation |
-| `NEXT_PUBLIC_API_URL` | ✅ | `http://localhost:8000` | Public API base URL accessible from the browser |
+| `NEXT_PUBLIC_API_URL` | — | `/api` | Legacy frontend API prefix (kept for backward compatibility) |
+| `NEXT_PUBLIC_API_BASE_URL` | ✅ | `/api/v1` | Frontend base URL used by Axios (`/api/v1` via Next.js rewrite, or `https://api.yourdomain.com/api/v1` for direct backend calls) |
 | `POSTGRES_USER` | — | `postgres` | PostgreSQL username (used by the postgres Docker service) |
 | `POSTGRES_PASSWORD` | — | `postgres` | PostgreSQL password (used by the postgres Docker service) |
 | `POSTGRES_DB` | — | `fastquicktikgram` | PostgreSQL database name (used by the postgres Docker service) |
@@ -384,6 +385,7 @@ All backend routes are mounted under `/api/v1`. The full interactive docs are av
 - **Backend router structure:** each domain router defines its own resource prefix (for example, `APIRouter(prefix="/auth")`) and is mounted in `backend/app/main.py` with `prefix="/api/v1"`.
 - **Final endpoint example:** `POST /api/v1/auth/register`
 - **Frontend call example:** `fetch("/api/v1/auth/register", { method: "POST", ... })`
+- **Frontend API base config:** set `NEXT_PUBLIC_API_BASE_URL` to `/api/v1` when using Next.js rewrite, or to `https://api.yourdomain.com/api/v1` when backend is exposed on a separate domain.
 - **Next.js rewrite convention:** `/api/*` on the frontend proxies to backend `/api/*`, so `/api/v1/*` remains unchanged end-to-end.
 - **Warning:** if frontend and backend prefixes do not match (for example `/api/auth/*` vs `/api/v1/auth/*`), requests will return `404 Not Found`.
 

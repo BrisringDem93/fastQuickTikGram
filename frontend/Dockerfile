@@ -21,8 +21,10 @@ ENV NODE_ENV=production
 # then promote to ENV so Next.js can embed NEXT_PUBLIC_* at compile time and
 # next.config.mjs can read BACKEND_URL for server-side rewrites.
 ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_API_BASE_URL
 ARG BACKEND_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
 ENV BACKEND_URL=$BACKEND_URL
 
 RUN npm run build

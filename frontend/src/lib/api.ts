@@ -9,7 +9,11 @@ import Cookies from "js-cookie";
 
 const ACCESS_TOKEN_KEY = "fqtg_access_token";
 const REFRESH_TOKEN_KEY = "fqtg_refresh_token";
-export const API_BASE = "/api/v1";
+
+const configuredApiBase = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
+export const API_BASE = configuredApiBase && configuredApiBase.length > 0
+  ? configuredApiBase.replace(/\/+$/, "")
+  : "/api/v1";
 
 export function getAuthToken(): string | null {
   if (typeof window === "undefined") return null;

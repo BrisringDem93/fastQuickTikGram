@@ -100,4 +100,5 @@ services:
     environment:
       NODE_ENV: development
       NEXT_PUBLIC_API_URL: /api
+      NEXT_PUBLIC_API_BASE_URL: /api/v1
       BACKEND_URL: http://backend:8000
