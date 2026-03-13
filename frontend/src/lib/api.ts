@@ -4,6 +4,7 @@ import axios, {
   type AxiosResponse,
 } from "axios";
 import Cookies from "js-cookie";
+import type { AuthTokens } from "@/types";
 
 // ─── Token helpers ────────────────────────────────────────────────────────────
 
@@ -100,12 +101,13 @@ api.interceptors.response.use(
       try {
         if (!refreshPromise) {
           refreshPromise = axios
-            .post<{ access_token: string }>(`${API_BASE}/auth/refresh`, {
+            .post<AuthTokens>(`${API_BASE}/auth/refresh`, {
               refresh_token: refreshToken,
             })
             .then((res) => {
-              const newToken = res.data.access_token;
+              const { access_token: newToken, refresh_token: newRefreshToken } = res.data;
               setAuthToken(newToken);
+              setRefreshToken(newRefreshToken);
               refreshPromise = null;
               return newToken;
             })

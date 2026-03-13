@@ -47,7 +47,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-      target: builder          # stop at the builder stage to keep dev deps
+      target: runtime          # keep runtime PATH and installed entrypoints available
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     ports:
       - "8000:8000"
@@ -92,7 +92,7 @@ services:
       target: deps              # stop at the deps stage for dev
     command: npm run dev
     ports:
-      - "3000:3000"
+      - "3550:3000"
     volumes:
       - ./frontend:/app         # live source mount
       - /app/node_modules       # keep container node_modules separate

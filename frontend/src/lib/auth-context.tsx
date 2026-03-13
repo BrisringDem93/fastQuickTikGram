@@ -62,12 +62,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [fetchCurrentUser]);
 
   const login = useCallback(async (email: string, password: string) => {
-    const params = new URLSearchParams();
-    params.set("username", email);
-    params.set("password", password);
-
-    const res = await api.post<AuthTokens>("/auth/login", params, {
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    const res = await api.post<AuthTokens>("/auth/login", {
+      email,
+      password,
     });
 
     setAuthToken(res.data.access_token);
