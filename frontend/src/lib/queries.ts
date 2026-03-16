@@ -10,7 +10,6 @@ import type {
   ContentJob,
   JobAsset,
   JobHook,
-  PresignedUploadResponse,
   PublishTarget,
   SocialAccount,
   User,
@@ -131,37 +130,21 @@ interface UploadVideoPayload {
 }
 
 export function useUploadVideo(): UseMutationResult<
-  JobAsset,
+  ContentJob,
   Error,
   UploadVideoPayload
 > {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ jobId, file, onProgress }) => {
-      // 1. Get presigned URL
-      const { data: presigned } = await api.post<PresignedUploadResponse>(
+      const formData = new FormData();
+      formData.append("file", file);
+
+      // Upload the file directly to the backend as multipart/form-data.
+      // The backend stores it locally and advances the job to VIDEO_UPLOADED.
+      const { data: job } = await api.post<ContentJob>(
         `/jobs/${jobId}/upload-video`,
-        {
-          filename: file.name,
-          content_type: file.type,
-          file_size: file.size,
-        },
-      );
-
-      // 2. Upload directly to S3
-      await fetch(presigned.upload_url, {
-        method: "PUT",
-        body: file,
-        headers: { "Content-Type": file.type },
-      });
-
-      // 3. Confirm upload
-      const { data: asset } = await api.post<JobAsset>(
-        `/jobs/${jobId}/confirm-upload`,
-        {
-          storage_key: presigned.storage_key,
-          file_size: file.size,
-        },
+        formData,
         {
           onUploadProgress: (e) => {
             if (onProgress && e.total) {
@@ -170,7 +153,7 @@ export function useUploadVideo(): UseMutationResult<
           },
         },
       );
-      return asset;
+      return job;
     },
     onSuccess: (_, { jobId }) => {
       qc.invalidateQueries({ queryKey: queryKeys.job(jobId) });

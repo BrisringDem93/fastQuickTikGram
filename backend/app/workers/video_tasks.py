@@ -104,7 +104,7 @@ async def _process_video_hook_async(job_id: str) -> None:
 
                 # Upload edited video to S3
                 edited_key = f"videos/{job.user_id}/{job.id}/edited.mp4"
-                storage.upload_file(output_path, edited_key, content_type="video/mp4")
+                storage.upload_file(output_path, edited_key)
 
                 job.edited_video_key = edited_key
 

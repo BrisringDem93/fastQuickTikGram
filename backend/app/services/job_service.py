@@ -5,6 +5,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
+from fastapi import UploadFile
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -14,7 +15,6 @@ from app.core.state_machine import ContentJobStateMachine, JobState
 from app.models.content_job import ContentJob, JobStatus
 from app.models.publish_target import PublishTarget, PublishTargetStatus
 from app.models.social_account import SocialAccount
-from app.schemas.job import VideoUploadResponse
 from app.services.storage_service import StorageService
 
 logger = logging.getLogger(__name__)
@@ -99,33 +99,36 @@ class JobService:
         await self._db.refresh(job)
         return job
 
-    async def get_presigned_upload_url(
-        self, *, job_id: uuid.UUID, user_id: uuid.UUID
-    ) -> VideoUploadResponse:
-        """Generate a presigned S3 URL to upload the job's video."""
+    async def save_uploaded_video(
+        self, *, job_id: uuid.UUID, user_id: uuid.UUID, file: UploadFile
+    ) -> ContentJob:
+        """Save an uploaded video file locally and transition DRAFT → VIDEO_UPLOADED."""
         job = await self.get_job(job_id=job_id, user_id=user_id)
         storage = StorageService()
         storage_key = f"videos/{user_id}/{job_id}/original.mp4"
-        upload_url = storage.generate_presigned_upload_url(
-            key=storage_key, content_type="video/mp4"
-        )
-        # Persist the key so we know where to look later
+        storage.store_fileobj(file.file, storage_key)
         job.original_video_key = storage_key
         await self._db.flush()
-        return VideoUploadResponse(
-            upload_url=upload_url,
-            storage_key=storage_key,
-            expires_in_seconds=3600,
-        )
+        return await self._transition(job, JobState.VIDEO_UPLOADED)
 
     async def confirm_video_upload(
         self, *, job_id: uuid.UUID, user_id: uuid.UUID
     ) -> ContentJob:
-        """Confirm the video is in S3 and transition DRAFT → VIDEO_UPLOADED."""
+        """Return the job after confirming the video has been uploaded.
+
+        This endpoint is kept for backward compatibility.  The upload-video
+        endpoint now stores the file *and* advances the state in a single
+        request, so calling this afterwards is a no-op if the job is already
+        in VIDEO_UPLOADED (or a later) state.
+        """
         job = await self.get_job(job_id=job_id, user_id=user_id)
         if not job.original_video_key:
             raise AppException("No video upload key found; call upload-video first")
-        return await self._transition(job, JobState.VIDEO_UPLOADED)
+        sm = ContentJobStateMachine(job.status.value)
+        if sm.can_transition_to(JobState.VIDEO_UPLOADED):
+            return await self._transition(job, JobState.VIDEO_UPLOADED)
+        # Already at VIDEO_UPLOADED or beyond — return as-is
+        return job
 
     async def transition_to_hook_generating(
         self, *, job_id: uuid.UUID, user_id: uuid.UUID

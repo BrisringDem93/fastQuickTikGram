@@ -8,7 +8,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api import auth, jobs, publishing, social
+from app.api import auth, jobs, media, publishing, social
 from app.core.exceptions import (
     AppException,
     InvalidStateTransitionError,
@@ -124,6 +124,7 @@ async def app_exception_handler(request: Request, exc: AppException) -> JSONResp
 # ------------------------------------------------------------------
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(jobs.router, prefix="/api/v1")
+app.include_router(media.router, prefix="/api/v1")
 app.include_router(social.router, prefix="/api/v1")
 app.include_router(publishing.router, prefix="/api/v1")
 
