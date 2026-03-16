@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, status
@@ -15,18 +16,31 @@ router = APIRouter(prefix="/media", tags=["media"])
 @router.get("/{path:path}", summary="Stream a stored media file")
 async def serve_media(
     path: str,
-    current_user: CurrentUser,  # noqa: ARG001 – presence proves the caller is authenticated
+    current_user: CurrentUser,
 ) -> FileResponse:
     """Return a stored video or image file by its storage key.
 
     The storage key is the path-like string used when the file was saved,
     e.g. ``videos/{user_id}/{job_id}/original.mp4``.
 
-    Authentication is required so that only logged-in users can retrieve
-    media.  For social-platform publishing that needs a publicly reachable
-    URL, set ``PUBLIC_BASE_URL`` and ensure the ``/api/v1/media`` prefix
-    is accessible from the internet on your Hetzner / Coolify deployment.
+    Ownership is verified by comparing the ``{user_id}`` segment of the path
+    against the authenticated user's ID so that users cannot access each
+    other's media.
     """
+    # Verify ownership: storage keys follow the pattern
+    # "videos/{user_id}/{job_id}/..." – extract and validate the user segment.
+    parts = Path(path).parts
+    if len(parts) >= 2:
+        try:
+            path_user_id = uuid.UUID(parts[1])
+        except ValueError:
+            path_user_id = None
+        if path_user_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied.",
+            )
+
     storage = StorageService()
     try:
         abs_path: Path = storage.get_file_path(path)

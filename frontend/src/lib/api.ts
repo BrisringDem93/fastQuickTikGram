@@ -62,12 +62,19 @@ const api: AxiosInstance = axios.create({
   timeout: 30_000,
 });
 
-// Request interceptor – attach Bearer token
+// Request interceptor – attach Bearer token and fix Content-Type for FormData
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = getAuthToken();
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    // When the request body is FormData, remove the Content-Type header so the
+    // browser can auto-set "multipart/form-data; boundary=..." correctly.
+    // The global default of "application/json" would otherwise override it and
+    // cause the server to return 422 Unprocessable Content.
+    if (config.data instanceof FormData && config.headers) {
+      config.headers.delete("Content-Type");
     }
     return config;
   },

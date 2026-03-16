@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import os
 import shutil
 from datetime import datetime, timezone
 from pathlib import Path
@@ -24,7 +23,7 @@ class StorageService:
     For social-platform publishing that requires a publicly reachable
     video URL, set ``PUBLIC_BASE_URL`` in the environment to the public
     root of the backend (e.g. ``https://api.yourdomain.com``).  The
-    ``generate_presigned_download_url`` method will return
+    ``generate_download_url`` method will return
     ``{PUBLIC_BASE_URL}/api/v1/media/{key}``.
     """
 
@@ -47,9 +46,9 @@ class StorageService:
         normalised = Path(decoded.lstrip("/"))
         resolved = (self._upload_dir / normalised).resolve()
         upload_dir_resolved = self._upload_dir.resolve()
-        # The resolved path must be the upload dir itself or a file inside it.
-        within_dir = str(resolved).startswith(str(upload_dir_resolved) + os.sep)
-        if not (within_dir or resolved == upload_dir_resolved):
+        # Use is_relative_to (Python 3.9+) for a robust ancestry check.
+        # The resolved path must be the upload dir itself or a descendant of it.
+        if resolved != upload_dir_resolved and not resolved.is_relative_to(upload_dir_resolved):
             raise AppException(f"Invalid storage key: {key!r}")
         return resolved
 
@@ -68,7 +67,7 @@ class StorageService:
             logger.exception("Failed to write storage object key=%s", key)
             raise AppException(f"Storage write error: {exc}") from exc
 
-    def generate_presigned_download_url(self, key: str) -> str:
+    def generate_download_url(self, key: str) -> str:
         """Return a URL that serves the stored object through the backend API.
 
         For the URL to be reachable by external services (e.g. Instagram),
