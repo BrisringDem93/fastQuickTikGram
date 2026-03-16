@@ -40,6 +40,16 @@ services:
       retries: 5
       start_period: 10s
 
+  # ── One-off DB bootstrap (creates tables if missing) ─────────────────────
+  migrate:
+    image: fastquicktikgram-backend:latest
+    restart: "no"
+    command: python -m app.bootstrap_db
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   # ── FastAPI backend ──────────────────────────────────────────────────────
   backend:
     image: fastquicktikgram-backend:latest
@@ -58,6 +68,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
   # ── Celery worker ────────────────────────────────────────────────────────
   worker:
@@ -76,6 +88,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
   # ── Celery beat scheduler ────────────────────────────────────────────────
   beat:
@@ -88,6 +102,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
   # ── Next.js frontend ─────────────────────────────────────────────────────
   frontend:

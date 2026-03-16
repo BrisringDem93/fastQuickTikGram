@@ -61,6 +61,8 @@ services:
     depends_on:
       minio:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
   # ── Worker: mount source so code changes are picked up on restart ────────
   worker:
@@ -78,9 +80,14 @@ services:
     depends_on:
       minio:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
   # ── Beat: same live-mount ────────────────────────────────────────────────
   beat:
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     volumes:
       - ./backend:/app
     environment:
