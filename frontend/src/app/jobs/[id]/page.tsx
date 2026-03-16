@@ -16,9 +16,14 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
 function resolveWizardStep(status: JobStatus): number {
   switch (status) {
+    case JobStatus.DRAFT:
     case JobStatus.PENDING_UPLOAD:
     case JobStatus.UPLOAD_IN_PROGRESS:
       return 1;
+    case JobStatus.VIDEO_UPLOADED:
+    case JobStatus.HOOK_GENERATING:
+    case JobStatus.HOOK_PENDING_APPROVAL:
+    case JobStatus.HOOK_REJECTED:
     case JobStatus.UPLOAD_COMPLETE:
     case JobStatus.TRANSCRIPTION_IN_PROGRESS:
     case JobStatus.TRANSCRIPTION_COMPLETE:
@@ -27,9 +32,12 @@ function resolveWizardStep(status: JobStatus): number {
       return 2;
     case JobStatus.HOOK_APPROVED:
       return 3;
+    case JobStatus.VIDEO_READY:
     case JobStatus.WAITING_FOR_SOCIAL_CONNECTION:
     case JobStatus.DESTINATIONS_SELECTED:
       return 4;
+    case JobStatus.READY_TO_PUBLISH:
+    case JobStatus.PUBLISHING:
     case JobStatus.PUBLISHING_IN_PROGRESS:
     case JobStatus.PARTIALLY_PUBLISHED:
     case JobStatus.PUBLISHED:
