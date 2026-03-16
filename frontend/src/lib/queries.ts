@@ -140,7 +140,7 @@ export function useUploadVideo(): UseMutationResult<
     mutationFn: async ({ jobId, file, onProgress }) => {
       // 1. Get presigned URL
       const { data: presigned } = await api.post<PresignedUploadResponse>(
-        `/jobs/${jobId}/upload-url`,
+        `/jobs/${jobId}/upload-video`,
         {
           filename: file.name,
           content_type: file.type,
