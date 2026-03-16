@@ -58,9 +58,10 @@ USER appuser
 
 EXPOSE 8000
 
-# Default: run the FastAPI application with Uvicorn
-# Override CMD to run Celery workers or beat scheduler.
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+# Default: run the FastAPI application with Uvicorn.
+# --timeout-keep-alive 600: keep TCP connections alive for up to 10 minutes
+# so that large video uploads (up to 500 MB) are not severed mid-transfer.
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4", "--timeout-keep-alive", "600"]
 
 
 # ── Stage 5: worker runtime (includes ffmpeg) ───────────────────────────────

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
-
-import boto3
-from botocore.config import Config
-from botocore.exceptions import ClientError
+import shutil
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, BinaryIO
+from urllib.parse import unquote
 
 from app.config import settings
 from app.core.exceptions import AppException
@@ -14,120 +14,121 @@ logger = logging.getLogger(__name__)
 
 
 class StorageService:
-    """Wraps boto3 for S3-compatible object storage operations."""
+    """Local filesystem-based object storage service.
+
+    Files are stored under ``settings.UPLOAD_DIR`` using the same
+    ``key`` path convention previously used for S3 objects, e.g.
+    ``videos/{user_id}/{job_id}/original.mp4``.
+
+    For social-platform publishing that requires a publicly reachable
+    video URL, set ``PUBLIC_BASE_URL`` in the environment to the public
+    root of the backend (e.g. ``https://api.yourdomain.com``).  The
+    ``generate_download_url`` method will return
+    ``{PUBLIC_BASE_URL}/api/v1/media/{key}``.
+    """
 
     def __init__(self) -> None:
-        kwargs: dict[str, Any] = {
-            "aws_access_key_id": settings.S3_ACCESS_KEY,
-            "aws_secret_access_key": settings.S3_SECRET_KEY,
-            "region_name": settings.S3_REGION,
-            "config": Config(signature_version="s3v4"),
-        }
-        if settings.S3_ENDPOINT_URL:
-            kwargs["endpoint_url"] = settings.S3_ENDPOINT_URL
+        self._upload_dir = Path(settings.UPLOAD_DIR)
+        self._upload_dir.mkdir(parents=True, exist_ok=True)
 
-        self._s3 = boto3.client("s3", **kwargs)
-        self._bucket = settings.S3_BUCKET
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
 
-    def generate_presigned_upload_url(
-        self,
-        key: str,
-        *,
-        content_type: str = "application/octet-stream",
-        expires_in: int = 3600,
-        max_size_bytes: int | None = None,
-    ) -> str:
-        """Return a presigned PUT URL for direct client-side uploads."""
-        params: dict[str, Any] = {
-            "Bucket": self._bucket,
-            "Key": key,
-            "ContentType": content_type,
-        }
-        if max_size_bytes:
-            params["ContentLength"] = max_size_bytes
+    def _resolve_key(self, key: str) -> Path:
+        """Resolve *key* to an absolute path, guarding against path traversal.
 
+        Both plain ``../..`` and URL-encoded ``%2F``-style traversals are blocked.
+        """
+        # Decode percent-encoding before resolving so that encoded traversals
+        # (e.g. ``..%2F..%2Fetc%2Fpasswd``) are caught the same way as plain ones.
+        decoded = unquote(key)
+        normalised = Path(decoded.lstrip("/"))
+        resolved = (self._upload_dir / normalised).resolve()
+        upload_dir_resolved = self._upload_dir.resolve()
+        # Use is_relative_to (Python 3.9+) for a robust ancestry check.
+        # The resolved path must be the upload dir itself or a descendant of it.
+        if resolved != upload_dir_resolved and not resolved.is_relative_to(upload_dir_resolved):
+            raise AppException(f"Invalid storage key: {key!r}")
+        return resolved
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def store_fileobj(self, fileobj: BinaryIO, key: str) -> None:
+        """Write *fileobj* to local storage under *key*."""
+        dest = self._resolve_key(key)
+        dest.parent.mkdir(parents=True, exist_ok=True)
         try:
-            url: str = self._s3.generate_presigned_url(
-                ClientMethod="put_object",
-                Params=params,
-                ExpiresIn=expires_in,
-                HttpMethod="PUT",
-            )
-            return url
-        except ClientError as exc:
-            logger.exception("Failed to generate presigned upload URL for key=%s", key)
-            raise AppException(f"Storage error: {exc}") from exc
+            with open(dest, "wb") as f:
+                shutil.copyfileobj(fileobj, f)
+        except OSError as exc:
+            logger.exception("Failed to write storage object key=%s", key)
+            raise AppException(f"Storage write error: {exc}") from exc
 
-    def generate_presigned_download_url(
-        self,
-        key: str,
-        *,
-        expires_in: int = 3600,
-    ) -> str:
-        """Return a presigned GET URL for secure object downloads."""
-        try:
-            url: str = self._s3.generate_presigned_url(
-                ClientMethod="get_object",
-                Params={"Bucket": self._bucket, "Key": key},
-                ExpiresIn=expires_in,
-            )
-            return url
-        except ClientError as exc:
-            logger.exception("Failed to generate presigned download URL for key=%s", key)
-            raise AppException(f"Storage error: {exc}") from exc
+    def generate_download_url(self, key: str) -> str:
+        """Return a URL that serves the stored object through the backend API.
+
+        For the URL to be reachable by external services (e.g. Instagram),
+        set ``PUBLIC_BASE_URL`` in your environment to the public HTTPS root
+        of the backend (e.g. ``https://api.yourdomain.com``).
+        """
+        base = settings.PUBLIC_BASE_URL.rstrip("/")
+        return f"{base}/api/v1/media/{key}"
 
     def delete_object(self, key: str) -> None:
-        """Delete an object from S3. Silently succeeds if key doesn't exist."""
+        """Delete a stored file. Silently succeeds if the key does not exist."""
+        path = self._resolve_key(key)
         try:
-            self._s3.delete_object(Bucket=self._bucket, Key=key)
-        except ClientError as exc:
-            logger.exception("Failed to delete S3 object key=%s", key)
+            path.unlink(missing_ok=True)
+        except OSError as exc:
+            logger.exception("Failed to delete storage object key=%s", key)
             raise AppException(f"Storage error: {exc}") from exc
 
     def get_object_metadata(self, key: str) -> dict[str, Any]:
-        """Return the object's metadata dict (HeadObject response)."""
-        try:
-            response = self._s3.head_object(Bucket=self._bucket, Key=key)
-            return {
-                "content_length": response.get("ContentLength"),
-                "content_type": response.get("ContentType"),
-                "last_modified": response.get("LastModified"),
-                "etag": response.get("ETag"),
-            }
-        except ClientError as exc:
-            error_code = exc.response.get("Error", {}).get("Code", "")
-            if error_code == "404":
-                raise AppException(f"Object not found in storage: {key}") from exc
-            logger.exception("Failed to get metadata for S3 object key=%s", key)
-            raise AppException(f"Storage error: {exc}") from exc
+        """Return basic metadata for a stored file."""
+        path = self._resolve_key(key)
+        if not path.exists():
+            raise AppException(f"Object not found in storage: {key}")
+        stat = path.stat()
+        return {
+            "content_length": stat.st_size,
+            "content_type": None,
+            "last_modified": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc),
+            "etag": None,
+        }
 
     def copy_object(self, source_key: str, dest_key: str) -> None:
-        """Copy an object within the same bucket."""
+        """Copy a stored file to a new key."""
+        src = self._resolve_key(source_key)
+        dst = self._resolve_key(dest_key)
+        dst.parent.mkdir(parents=True, exist_ok=True)
         try:
-            self._s3.copy_object(
-                Bucket=self._bucket,
-                CopySource={"Bucket": self._bucket, "Key": source_key},
-                Key=dest_key,
-            )
-        except ClientError as exc:
-            logger.exception("Failed to copy S3 object from %s to %s", source_key, dest_key)
+            shutil.copy2(src, dst)
+        except OSError as exc:
+            logger.exception("Failed to copy storage object %s → %s", source_key, dest_key)
             raise AppException(f"Storage error: {exc}") from exc
 
     def download_file(self, key: str, local_path: str) -> None:
-        """Download an S3 object to a local path."""
+        """Copy a stored file to *local_path* (used by Celery workers)."""
+        src = self._resolve_key(key)
         try:
-            self._s3.download_file(self._bucket, key, local_path)
-        except ClientError as exc:
-            logger.exception("Failed to download S3 object key=%s", key)
+            shutil.copy2(src, local_path)
+        except OSError as exc:
+            logger.exception("Failed to download storage object key=%s", key)
             raise AppException(f"Storage download error: {exc}") from exc
 
-    def upload_file(self, local_path: str, key: str, content_type: str | None = None) -> None:
-        """Upload a local file to S3."""
-        extra_args: dict[str, str] = {}
-        if content_type:
-            extra_args["ContentType"] = content_type
+    def upload_file(self, local_path: str, key: str) -> None:
+        """Copy a local file into storage under *key* (used by Celery workers)."""
+        dest = self._resolve_key(key)
+        dest.parent.mkdir(parents=True, exist_ok=True)
         try:
-            self._s3.upload_file(local_path, self._bucket, key, ExtraArgs=extra_args or None)
-        except ClientError as exc:
-            logger.exception("Failed to upload file to S3 key=%s", key)
+            shutil.copy2(local_path, dest)
+        except OSError as exc:
+            logger.exception("Failed to upload file to storage key=%s", key)
             raise AppException(f"Storage upload error: {exc}") from exc
+
+    def get_file_path(self, key: str) -> Path:
+        """Return the absolute filesystem path for *key* (for serving via FileResponse)."""
+        return self._resolve_key(key)

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile, status
 
 from app.api.deps import CurrentUser, DBDep
 from app.core.exceptions import AppException, NotFoundError, PermissionError
@@ -15,7 +15,6 @@ from app.schemas.job import (
     JobResponse,
     PublishNowRequest,
     ScheduleRequest,
-    VideoUploadResponse,
 )
 from app.services.hook_service import HookService
 from app.services.job_service import JobService
@@ -76,17 +75,22 @@ async def get_job(job_id: uuid.UUID, db: DBDep, current_user: CurrentUser) -> Jo
     return JobResponse.model_validate(job)
 
 
-@router.post("/{job_id}/upload-video", response_model=VideoUploadResponse)
-async def get_upload_url(
-    job_id: uuid.UUID, db: DBDep, current_user: CurrentUser
-) -> VideoUploadResponse:
-    """Generate a presigned S3 upload URL for the job's video."""
+@router.post("/{job_id}/upload-video", response_model=JobResponse)
+async def upload_video(
+    job_id: uuid.UUID,
+    db: DBDep,
+    current_user: CurrentUser,
+    file: UploadFile = File(..., description="Video file (mp4, mov, avi, mkv)"),
+) -> JobResponse:
+    """Accept a direct video file upload, store it on the server, and advance the job to VIDEO_UPLOADED."""
     service = JobService(db)
     try:
-        result = await service.get_presigned_upload_url(job_id=job_id, user_id=current_user.id)
+        job = await service.save_uploaded_video(
+            job_id=job_id, user_id=current_user.id, file=file
+        )
     except AppException as exc:
         _raise_for_app_exception(exc)
-    return result
+    return JobResponse.model_validate(job)
 
 
 @router.post("/{job_id}/confirm-upload", response_model=JobResponse)

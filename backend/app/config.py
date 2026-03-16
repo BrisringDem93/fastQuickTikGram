@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import Optional
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -33,13 +32,16 @@ class Settings(BaseSettings):
     ENCRYPTION_KEY: str
 
     # ------------------------------------------------------------------
-    # S3-compatible object storage
+    # Local filesystem storage
     # ------------------------------------------------------------------
-    S3_BUCKET: str = "fastquicktikgram"
-    S3_ENDPOINT_URL: Optional[str] = None   # None → use AWS default
-    S3_ACCESS_KEY: str = "s3-access-key"
-    S3_SECRET_KEY: str = "s3-secret-key"
-    S3_REGION: str = "us-east-1"
+    # Directory where uploaded and processed videos are stored inside the container.
+    # Mount a persistent Docker volume here so files survive container restarts.
+    UPLOAD_DIR: str = "/app/uploads"
+
+    # Public HTTPS root of the backend used to build media download URLs for
+    # social-platform publishing APIs (e.g. "https://api.yourdomain.com").
+    # Leave empty during local development; set it in production.
+    PUBLIC_BASE_URL: str = ""
 
     # ------------------------------------------------------------------
     # OpenAI

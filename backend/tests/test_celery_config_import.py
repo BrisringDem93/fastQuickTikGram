@@ -18,7 +18,7 @@ class CeleryConfigImportTests(unittest.TestCase):
                 "OPENAI_API_KEY": "test-openai-key",
             }
         )
-        for key in ("DATABASE_URL", "S3_BUCKET", "S3_ACCESS_KEY", "S3_SECRET_KEY"):
+        for key in ("DATABASE_URL",):
             env.pop(key, None)
 
         result = subprocess.run(

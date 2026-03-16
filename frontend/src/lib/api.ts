@@ -62,12 +62,22 @@ const api: AxiosInstance = axios.create({
   timeout: 30_000,
 });
 
-// Request interceptor – attach Bearer token
+// Request interceptor – attach Bearer token and fix Content-Type for FormData
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = getAuthToken();
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    // When the request body is FormData (e.g. video upload):
+    // 1. Remove the Content-Type header so the browser can auto-set the
+    //    required "multipart/form-data; boundary=..." value.
+    // 2. Disable the global 30-second timeout – large video files (up to
+    //    500 MB) need far more time to transfer and the client must not abort
+    //    the request before the server has received the full body.
+    if (config.data instanceof FormData && config.headers) {
+      config.headers.delete("Content-Type");
+      config.timeout = 0; // no timeout for file uploads
     }
     return config;
   },

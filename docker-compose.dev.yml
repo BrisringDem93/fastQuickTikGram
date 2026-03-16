@@ -3,36 +3,15 @@
 #   docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
 #
 # Additions:
-#   • MinIO  – S3-compatible local object storage (replaces real S3/AWS)
 #   • MailHog – catches outbound SMTP so you can inspect emails in a browser
 #   • Hot-reload volume mounts for backend (uvicorn --reload) and frontend
 
 version: '3.9'
 
 volumes:
-  minio_data:
+  uploads_data:
 
 services:
-
-  # ── MinIO (local S3-compatible storage) ─────────────────────────────────
-  minio:
-    image: minio/minio:latest
-    restart: unless-stopped
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    ports:
-      - "9000:9000"   # S3 API
-      - "9001:9001"   # MinIO web console → http://localhost:9001
-    volumes:
-      - minio_data:/data
-    healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
 
   # ── MailHog (SMTP catcher) ───────────────────────────────────────────────
   mailhog:
@@ -54,13 +33,8 @@ services:
     volumes:
       - ./backend:/app         # live source mount for hot-reload
       - uploads_tmp:/app/tmp
-    environment:
-      S3_ENDPOINT_URL: http://minio:9000
-      S3_ACCESS_KEY: minioadmin
-      S3_SECRET_KEY: minioadmin
+      - uploads_data:/app/uploads
     depends_on:
-      minio:
-        condition: service_healthy
       migrate:
         condition: service_completed_successfully
 
@@ -73,13 +47,8 @@ services:
     volumes:
       - ./backend:/app
       - uploads_tmp:/app/tmp
-    environment:
-      S3_ENDPOINT_URL: http://minio:9000
-      S3_ACCESS_KEY: minioadmin
-      S3_SECRET_KEY: minioadmin
+      - uploads_data:/app/uploads
     depends_on:
-      minio:
-        condition: service_healthy
       migrate:
         condition: service_completed_successfully
 
@@ -90,10 +59,6 @@ services:
         condition: service_completed_successfully
     volumes:
       - ./backend:/app
-    environment:
-      S3_ENDPOINT_URL: http://minio:9000
-      S3_ACCESS_KEY: minioadmin
-      S3_SECRET_KEY: minioadmin
 
   # ── Frontend: mount source for Next.js dev server with HMR ──────────────
   frontend:

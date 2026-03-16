@@ -36,12 +36,6 @@ class JobListResponse(BaseModel):
     page_size: int
 
 
-class VideoUploadResponse(BaseModel):
-    upload_url: str
-    storage_key: str
-    expires_in_seconds: int
-
-
 class HookGenerateRequest(BaseModel):
     prompt: str | None = Field(
         default=None,
