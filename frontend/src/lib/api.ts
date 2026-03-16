@@ -69,12 +69,15 @@ api.interceptors.request.use(
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    // When the request body is FormData, remove the Content-Type header so the
-    // browser can auto-set "multipart/form-data; boundary=..." correctly.
-    // The global default of "application/json" would otherwise override it and
-    // cause the server to return 422 Unprocessable Content.
+    // When the request body is FormData (e.g. video upload):
+    // 1. Remove the Content-Type header so the browser can auto-set the
+    //    required "multipart/form-data; boundary=..." value.
+    // 2. Disable the global 30-second timeout – large video files (up to
+    //    500 MB) need far more time to transfer and the client must not abort
+    //    the request before the server has received the full body.
     if (config.data instanceof FormData && config.headers) {
       config.headers.delete("Content-Type");
+      config.timeout = 0; // no timeout for file uploads
     }
     return config;
   },

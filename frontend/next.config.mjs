@@ -1,6 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
+  // Disable the Next.js reverse-proxy timeout for large file uploads.
+  // The default (5 seconds) would abort multipart video uploads routed
+  // through the /api rewrite before the backend has finished receiving the body.
+  experimental: {
+    proxyTimeout: false,
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "**.googleapis.com" },

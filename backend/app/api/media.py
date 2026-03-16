@@ -29,17 +29,25 @@ async def serve_media(
     """
     # Verify ownership: storage keys follow the pattern
     # "videos/{user_id}/{job_id}/..." – extract and validate the user segment.
+    # Paths that are too short or contain a non-UUID user segment are rejected.
     parts = Path(path).parts
-    if len(parts) >= 2:
-        try:
-            path_user_id = uuid.UUID(parts[1])
-        except ValueError:
-            path_user_id = None
-        if path_user_id != current_user.id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access denied.",
-            )
+    if len(parts) < 2:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied.",
+        )
+    try:
+        path_user_id = uuid.UUID(parts[1])
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied.",
+        )
+    if path_user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied.",
+        )
 
     storage = StorageService()
     try:
