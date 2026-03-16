@@ -53,6 +53,15 @@ export function formatDuration(seconds: number | null | undefined): string {
 // ─── Job status helpers ───────────────────────────────────────────────────────
 
 const STATUS_LABELS: Record<JobStatus, string> = {
+  [JobStatus.DRAFT]: "Draft",
+  [JobStatus.VIDEO_UPLOADED]: "Video Uploaded",
+  [JobStatus.HOOK_GENERATING]: "Generating Hooks…",
+  [JobStatus.HOOK_PENDING_APPROVAL]: "Hook Pending Approval",
+  [JobStatus.HOOK_REJECTED]: "Hook Rejected",
+  [JobStatus.VIDEO_EDITING]: "Video Editing",
+  [JobStatus.VIDEO_READY]: "Video Ready",
+  [JobStatus.READY_TO_PUBLISH]: "Ready to Publish",
+  [JobStatus.PUBLISHING]: "Publishing…",
   [JobStatus.PENDING_UPLOAD]: "Pending Upload",
   [JobStatus.UPLOAD_IN_PROGRESS]: "Uploading…",
   [JobStatus.UPLOAD_COMPLETE]: "Upload Complete",
@@ -87,10 +96,20 @@ export function getStatusColor(
     case JobStatus.CANCELLED:
       return "red";
     case JobStatus.PUBLISHING_IN_PROGRESS:
+    case JobStatus.PUBLISHING:
     case JobStatus.TRANSCRIPTION_IN_PROGRESS:
     case JobStatus.HOOK_GENERATION_IN_PROGRESS:
+    case JobStatus.HOOK_GENERATING:
+    case JobStatus.VIDEO_EDITING:
     case JobStatus.UPLOAD_IN_PROGRESS:
       return "yellow";
+    case JobStatus.HOOK_PENDING_APPROVAL:
+    case JobStatus.READY_TO_PUBLISH:
+    case JobStatus.VIDEO_READY:
+    case JobStatus.VIDEO_UPLOADED:
+      return "blue";
+    case JobStatus.HOOK_REJECTED:
+      return "orange";
     case JobStatus.PARTIALLY_PUBLISHED:
       return "orange";
     default:
