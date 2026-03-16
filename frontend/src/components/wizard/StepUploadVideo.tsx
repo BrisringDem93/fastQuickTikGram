@@ -26,9 +26,32 @@ export function StepUploadVideo({ job }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadMutation = useUploadVideo();
 
-  const alreadyUploaded =
-    job.status !== JobStatus.PENDING_UPLOAD &&
-    job.status !== JobStatus.UPLOAD_IN_PROGRESS;
+  const alreadyUploadedStatuses = new Set<JobStatus>([
+    JobStatus.VIDEO_UPLOADED,
+    JobStatus.HOOK_GENERATING,
+    JobStatus.HOOK_PENDING_APPROVAL,
+    JobStatus.HOOK_REJECTED,
+    JobStatus.HOOK_APPROVED,
+    JobStatus.VIDEO_EDITING,
+    JobStatus.VIDEO_READY,
+    JobStatus.WAITING_FOR_SOCIAL_CONNECTION,
+    JobStatus.DESTINATIONS_SELECTED,
+    JobStatus.READY_TO_PUBLISH,
+    JobStatus.SCHEDULED,
+    JobStatus.PUBLISHING,
+    JobStatus.PARTIALLY_PUBLISHED,
+    JobStatus.PUBLISHED,
+    JobStatus.FAILED,
+    JobStatus.CANCELLED,
+    JobStatus.UPLOAD_COMPLETE,
+    JobStatus.TRANSCRIPTION_IN_PROGRESS,
+    JobStatus.TRANSCRIPTION_COMPLETE,
+    JobStatus.HOOK_GENERATION_IN_PROGRESS,
+    JobStatus.HOOK_GENERATION_COMPLETE,
+    JobStatus.PUBLISHING_IN_PROGRESS,
+  ]);
+
+  const alreadyUploaded = alreadyUploadedStatuses.has(job.status);
 
   const validateAndSetFile = useCallback((f: File) => {
     if (!ACCEPTED_TYPES.includes(f.type)) {
