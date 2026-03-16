@@ -3,6 +3,8 @@ from __future__ import annotations
 import asyncio
 import logging
 import uuid
+from collections.abc import Coroutine
+from typing import Any
 from datetime import datetime, timezone
 
 from sqlalchemy import select
@@ -18,6 +20,25 @@ from app.publishers.base import PublisherFactory
 from app.workers.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
+
+_worker_event_loop: asyncio.AbstractEventLoop | None = None
+
+
+def _run_in_worker_loop(coro: Coroutine[Any, Any, Any]) -> None:
+    """Run async code on a persistent loop for the Celery worker process.
+
+    Celery tasks run in sync context. Using ``asyncio.run`` per task creates
+    and closes a fresh event loop every execution, while SQLAlchemy asyncpg
+    connections in the pool may still be tied to an earlier loop.
+    Reusing one loop per worker process avoids cross-loop errors.
+    """
+    global _worker_event_loop
+
+    if _worker_event_loop is None or _worker_event_loop.is_closed():
+        _worker_event_loop = asyncio.new_event_loop()
+
+    asyncio.set_event_loop(_worker_event_loop)
+    _worker_event_loop.run_until_complete(coro)
 
 
 async def _publish_job_async(job_id: str) -> None:
@@ -156,7 +177,7 @@ async def _scheduler_beat_async() -> None:
 def publish_job_task(self, job_id: str) -> None:
     """Celery task: publish a job to all selected destinations."""
     try:
-        asyncio.run(_publish_job_async(job_id))
+        _run_in_worker_loop(_publish_job_async(job_id))
     except Exception as exc:
         logger.exception("publish_job_task failed for job %s", job_id)
         raise self.retry(exc=exc)
@@ -165,4 +186,4 @@ def publish_job_task(self, job_id: str) -> None:
 @celery_app.task(name="app.workers.publish_tasks.scheduler_beat_task")
 def scheduler_beat_task() -> None:
     """Celery Beat task: trigger publishing for any jobs whose scheduled time has passed."""
-    asyncio.run(_scheduler_beat_async())
+    _run_in_worker_loop(_scheduler_beat_async())
